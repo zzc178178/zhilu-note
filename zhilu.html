@@ -729,6 +729,9 @@ body{
         <span class="fmt-sep"></span>
         <button class="fmt-btn" onclick="fmtExec('outdent')" title="减少缩进">←缩进</button>
         <button class="fmt-btn" onclick="fmtExec('indent')" title="增加缩进">缩进→</button>
+        <span class="fmt-sep"></span>
+        <button class="fmt-btn" onclick="undoEdit()" title="撤销 (Ctrl+Z)">↶</button>
+        <button class="fmt-btn" onclick="redoEdit()" title="重做 (Ctrl+Y)">↷</button>
         <span class="fmt-right">
           <button class="fmt-btn source-btn" onclick="switchToSource()" title="切换到源码编辑">&lt;/&gt; 源码</button>
           <button class="fmt-btn cancel-btn" onclick="cancelVisualEdit()">取消</button>
@@ -1230,14 +1233,50 @@ function editVisual(){
       doc.designMode='on';
       // designMode enables direct text editing in the iframe
     }catch(e){}
+    // Initialize undo history with current state
+    _editHistory=[];
+    _editHistoryIndex=-1;
+    pushEditState();
     document.getElementById('formatToolbar').style.display='flex';
     showToast('✏️ 点击文字直接编辑，或使用上方格式工具栏');
   });
 }
 
+// ===== Undo/Redo (snapshot-based) =====
+let _editHistory=[];
+let _editHistoryIndex=-1;
+
+function pushEditState(){
+  const frame=document.getElementById('noteFrame');
+  try{
+    const html=frame.contentDocument.body.innerHTML;
+    _editHistory=_editHistory.slice(0,_editHistoryIndex+1);
+    _editHistory.push(html);
+    if(_editHistory.length>100)_editHistory.shift();
+    _editHistoryIndex=_editHistory.length-1;
+  }catch(e){}
+}
+
+function undoEdit(){
+  if(_editHistoryIndex<=0)return;
+  _editHistoryIndex--;
+  const frame=document.getElementById('noteFrame');
+  try{frame.contentDocument.body.innerHTML=_editHistory[_editHistoryIndex];}catch(e){}
+  frame.focus();
+}
+
+function redoEdit(){
+  if(_editHistoryIndex>=_editHistory.length-1)return;
+  _editHistoryIndex++;
+  const frame=document.getElementById('noteFrame');
+  try{frame.contentDocument.body.innerHTML=_editHistory[_editHistoryIndex];}catch(e){}
+  frame.focus();
+}
+
 function fmtExec(command,value){
   const frame=document.getElementById('noteFrame');
   const doc=frame.contentDocument;
+  pushEditState();
   doc.execCommand(command,false,value||null);
   frame.focus();
 }
@@ -1310,12 +1349,27 @@ async function saveSourceEdit(){
   showToast('✅ 已保存');
 }
 
-// Ctrl+S: save in either mode
+// Keyboard shortcuts during editing
 document.addEventListener('keydown',e=>{
-  if(!(e.ctrlKey||e.metaKey)||e.key!=='s'||!_editId)return;
-  e.preventDefault();
-  if(_editMode==='source') saveSourceEdit();
-  else saveVisualEdit();
+  if(!(e.ctrlKey||e.metaKey)||!_editId)return;
+  // Ctrl+S: save
+  if(e.key==='s'){
+    e.preventDefault();
+    if(_editMode==='source') saveSourceEdit();
+    else saveVisualEdit();
+    return;
+  }
+  // Ctrl+Z: undo (visual mode only)
+  if(e.key==='z'&&!e.shiftKey&&_editMode==='visual'){
+    e.preventDefault();
+    undoEdit();
+    return;
+  }
+  // Ctrl+Y or Ctrl+Shift+Z: redo (visual mode only)
+  if((e.key==='y'||(e.key==='z'&&e.shiftKey))&&_editMode==='visual'){
+    e.preventDefault();
+    redoEdit();
+  }
 });
 function renameNoteById(id){
   getOne('notes',id).then(n=>{
