@@ -1855,6 +1855,23 @@ async function uploadToGist(){
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const result=await res.json();
     setGistId(result.id);
+    // Clean up old gists with same filename
+    try{
+      const listRes=await fetch('https://api.github.com/gists',{
+        headers:{'Authorization':`token ${token}`}
+      });
+      if(listRes.ok){
+        const gists=await listRes.json();
+        const oldGists=gists.filter(g=>g.id!==result.id&&g.files&&g.files['zhilu-notes.json']);
+        for(const g of oldGists){
+          await fetch(`https://api.github.com/gists/${g.id}`,{
+            method:'DELETE',
+            headers:{'Authorization':`token ${token}`}
+          });
+        }
+        if(oldGists.length) console.log(`已清理 ${oldGists.length} 个旧 Gist`);
+      }
+    }catch(e){ /* ignore cleanup errors */ }
     status.textContent=`✅ 已上传 ${notes.length} 篇笔记到 Gist`;
     showToast('云端同步成功');
     // Refresh modal UI to show token saved state
@@ -1883,15 +1900,17 @@ async function downloadFromGist(){
   try{
     let gistId=getGistId();
     if(!gistId){
-      // List gists to find zhilu-notes
+      // List gists to find zhilu-notes, pick the LATEST one
       const listRes=await fetch('https://api.github.com/gists',{
         headers:{'Authorization':`token ${token}`}
       });
       if(!listRes.ok) throw new Error(`HTTP ${listRes.status}`);
       const gists=await listRes.json();
-      const found=gists.find(g=>g.files['zhilu-notes.json']);
-      if(!found){ status.textContent='未找到知录同步数据'; return; }
-      gistId=found.id;
+      const matches=gists.filter(g=>g.files&&g.files['zhilu-notes.json']);
+      if(!matches.length){ status.textContent='未找到知录同步数据'; return; }
+      // Sort by updated_at descending, pick the most recent
+      matches.sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at));
+      gistId=matches[0].id;
       setGistId(gistId);
     }
     const res=await fetch(`https://api.github.com/gists/${gistId}`,{
