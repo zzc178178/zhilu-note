@@ -120,6 +120,14 @@ body{
   gap:4px;
   border-bottom:1px solid rgba(255,255,255,0.06);
 }
+@media (max-width:360px){
+  .sidebar-actions{
+    grid-template-columns:1fr;
+  }
+  .sidebar-actions button.full-width{
+    grid-column:auto;
+  }
+}
 .sidebar-actions button.full-width{
   grid-column:1/-1;
 }
