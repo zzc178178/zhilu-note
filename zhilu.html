@@ -299,6 +299,20 @@ body{
   text-overflow:ellipsis;
   white-space:nowrap;
 }
+.note-toolbar .menu-btn{
+  display:none;
+  padding:6px 10px;
+  border:none;
+  border-radius:var(--radius-sm);
+  background:transparent;
+  color:var(--text);
+  cursor:pointer;
+  font-size:1.1rem;
+  margin-right:8px;
+}
+@media(max-width:600px){
+  .note-toolbar .menu-btn{display:block}
+}
 .note-toolbar .btn-icon{
   padding:5px 10px;
   border:none;
@@ -594,6 +608,7 @@ body{
 
     <div class="note-viewer" id="noteViewer" style="display:none">
       <div class="note-toolbar">
+        <button class="menu-btn" onclick="toggleSidebar()" title="打开目录">☰</button>
         <span class="note-name" id="viewerName">笔记名称</span>
         <button class="btn-icon" onclick="editVisual()" id="editBtn">✏️ 编辑</button>
         <button class="btn-icon" onclick="exportCurrentNote()">📤 导出</button>
@@ -729,6 +744,10 @@ function delData(store,id){
 }
 
 function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  sb.classList.toggle('mobile-show');
+}
 
 // ===== Render =====
 async function render(){
