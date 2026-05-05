@@ -81,6 +81,22 @@ body{
 .sidebar-header{
   padding:20px 18px 12px;
   border-bottom:1px solid rgba(255,255,255,0.06);
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+}
+.sidebar-close-btn{
+  display:none;
+  background:transparent;
+  border:none;
+  color:var(--text-sidebar);
+  font-size:1.2rem;
+  cursor:pointer;
+  padding:2px 6px;
+  margin-top:4px;
+}
+@media(max-width:600px){
+  .sidebar-close-btn{display:block}
 }
 .sidebar-header h1{
   font-family:var(--font-display);
@@ -286,8 +302,22 @@ body{
   transition:var(--transition);
 }
 .mobile-import-btn:hover{background:var(--bg-hover);border-color:var(--accent)}
+.mobile-menu-btn{
+  display:none;
+  margin-bottom:8px;
+  padding:8px 20px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background:var(--bg);
+  color:var(--text);
+  font-size:0.9rem;
+  cursor:pointer;
+  transition:var(--transition);
+}
+.mobile-menu-btn:hover{background:var(--bg-hover);border-color:var(--accent)}
 @media(max-width:768px){
   .mobile-import-btn{display:block}
+  .mobile-menu-btn{display:block}
   .empty-state .hint{display:none}
 }
 
@@ -592,8 +622,11 @@ body{
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <h1>📓 知录</h1>
-      <div class="sub" id="noteCount">0 篇笔记</div>
+      <div>
+        <h1>📓 知录</h1>
+        <div class="sub" id="noteCount">0 篇笔记</div>
+      </div>
+      <button class="sidebar-close-btn" onclick="toggleSidebar()" title="关闭">✕</button>
     </div>
     <div class="sidebar-actions">
       <button onclick="showNewFolderModal()">📁 新建</button>
@@ -615,6 +648,7 @@ body{
   <!-- Main -->
   <main class="content">
     <div class="empty-state" id="emptyState">
+      <button class="mobile-menu-btn" onclick="toggleSidebar()">☰ 打开目录</button>
       <div class="emoji">📝</div>
       <h2>选择一篇笔记</h2>
       <p>从左侧目录选择笔记，或导入 HTML 文件</p>
@@ -869,6 +903,8 @@ function selectFolder(id){
   state.selectedNote=null;
   document.getElementById('noteViewer').style.display='none';
   document.getElementById('emptyState').style.display='flex';
+  // Close sidebar on mobile after selection
+  if(window.innerWidth<=600) document.getElementById('sidebar').classList.remove('mobile-show');
   render();
 }
 
@@ -895,6 +931,8 @@ async function selectNote(id){
   frame.srcdoc=sanitizeContent(note.content)||'<p style="padding:40px;color:#999">笔记内容为空</p>';
   // Auto-update from disk if linked
   autoUpdateNote(id);
+  // Close sidebar on mobile after selection
+  if(window.innerWidth<=600) document.getElementById('sidebar').classList.remove('mobile-show');
 }
 
 async function autoUpdateNote(id){
