@@ -247,6 +247,53 @@ body{
   opacity:0.5;
 }
 
+/* Swipe actions (mobile) */
+.swipe-item{
+  position:relative;
+  overflow:hidden;
+}
+.swipe-content{
+  position:relative;
+  z-index:2;
+  transition:transform 0.25s ease;
+}
+.swipe-content.swiped{
+  transform:translateX(-160px);
+}
+.swipe-actions{
+  position:absolute;
+  right:0;
+  top:0;
+  bottom:0;
+  width:160px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  z-index:1;
+}
+.swipe-btn{
+  flex:1;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 4px;
+  border:none;
+  background:var(--accent-strong);
+  color:#fff;
+  font-size:0.75rem;
+  font-family:var(--font-body);
+  cursor:pointer;
+  white-space:nowrap;
+  transition:background 0.2s;
+}
+.swipe-btn:active{
+  opacity:0.85;
+}
+.swipe-btn.swipe-danger{
+  background:#dc2626;
+}
+
 /* Context menu */
 .context-menu{
   position:fixed;
@@ -949,13 +996,20 @@ function renderFolderItem(all,fold,depth){
   const hasChildren=children.length>0;
   const sel=state.selectedFolder===fold.id;
   let html=`
-    <div class="tree-item ${sel?'active':''}" style="padding-left:${18+depth*16}px" data-folder-id="${fold.id}"
-         onclick="selectFolder('${fold.id}');event.stopPropagation()"
-         oncontextmenu="showFolderContext(event,'${fold.id}')">
-      <span class="arrow ${expanded?'expanded':''}" onclick="event.stopPropagation();toggleFolder('${fold.id}')"
-            style="visibility:${hasChildren?'visible':'hidden'}">▶</span>
-      <span class="icon">📁</span>
-      <span class="name">${escHtml(fold.name)}</span>
+    <div class="swipe-item">
+      <div class="swipe-content tree-item ${sel?'active':''}" style="padding-left:${18+depth*16}px" data-folder-id="${fold.id}"
+           onclick="selectFolder('${fold.id}');event.stopPropagation()"
+           oncontextmenu="showFolderContext(event,'${fold.id}')">
+        <span class="arrow ${expanded?'expanded':''}" onclick="event.stopPropagation();toggleFolder('${fold.id}')"
+              style="visibility:${hasChildren?'visible':'hidden'}">▶</span>
+        <span class="icon">📁</span>
+        <span class="name">${escHtml(fold.name)}</span>
+      </div>
+      <div class="swipe-actions">
+        <button class="swipe-btn" onclick="renameFolder('${fold.id}')">重命名</button>
+        <button class="swipe-btn" onclick="showNewFolderModal('${fold.id}')">新建</button>
+        <button class="swipe-btn swipe-danger" onclick="confirmDelete('folder','${fold.id}')">删除</button>
+      </div>
     </div>`;
   if(expanded){
     children.forEach(c=>{html+=renderFolderItem(all,c,depth+1)});
@@ -982,11 +1036,17 @@ function renderNotes(notes){
 function renderNoteItem(note){
   const sel=state.selectedNote===note.id;
   return `
-    <div class="file-item ${sel?'active':''}" data-note-id="${note.id}" onclick="selectNote('${note.id}')"
-         oncontextmenu="showNoteContext(event,'${note.id}')">
-      <span class="icon">📄</span>
-      <span class="name">${escHtml(note.name.replace(/\.html?$/i,''))}</span>
-      <span class="tag">HTML</span>
+    <div class="swipe-item">
+      <div class="swipe-content file-item ${sel?'active':''}" data-note-id="${note.id}" onclick="selectNote('${note.id}')"
+           oncontextmenu="showNoteContext(event,'${note.id}')">
+        <span class="icon">📄</span>
+        <span class="name">${escHtml(note.name.replace(/\.html?$/i,''))}</span>
+        <span class="tag">HTML</span>
+      </div>
+      <div class="swipe-actions">
+        <button class="swipe-btn" onclick="renameNoteById('${note.id}')">重命名</button>
+        <button class="swipe-btn swipe-danger" onclick="confirmDelete('note','${note.id}')">删除</button>
+      </div>
     </div>`;
 }
 
@@ -1660,37 +1720,49 @@ function initResizer(){
 }
 
 // ===== Long Press (mobile right-click equivalent) =====
-function initLongPress(){
+function initSwipeActions(){
   const container=document.getElementById('treeContainer');
-  let timer=null,target=null,startX=0,startY=0;
+  let startX=0,startY=0,currentEl=null;
 
   container.addEventListener('touchstart',e=>{
-    const el=e.target.closest('.tree-item,.file-item');
-    if(!el)return;
-    e.preventDefault();
-    target=el;
+    const btn=e.target.closest('.swipe-btn');
+    if(btn){currentEl=null;return;}
+    const el=e.target.closest('.swipe-content');
+    if(!el){closeAllSwiped();return;}
     startX=e.touches[0].clientX;
     startY=e.touches[0].clientY;
-    timer=setTimeout(()=>{
-      timer=null;
-      const folderId=el.dataset.folderId;
-      const noteId=el.dataset.noteId;
-      const fakeEvent={preventDefault:()=>{},clientX:startX,clientY:startY,target:el};
-      if(folderId){showFolderContext(fakeEvent,folderId);el._lp=true;}
-      else if(noteId){showNoteContext(fakeEvent,noteId);el._lp=true;}
-    },600);
-  },{passive:false});
-
-  container.addEventListener('touchmove',e=>{
-    if(!timer)return;
-    const dx=e.touches[0].clientX-startX,dy=e.touches[0].clientY-startY;
-    if(Math.abs(dx)>10||Math.abs(dy)>10){clearTimeout(timer);timer=null;target=null;}
+    currentEl=el;
   },{passive:true});
 
+  container.addEventListener('touchmove',e=>{
+    if(!currentEl)return;
+    const dx=e.touches[0].clientX-startX;
+    const dy=e.touches[0].clientY-startY;
+    if(Math.abs(dy)>Math.abs(dx)){currentEl=null;return;}
+    if(dx<0){e.preventDefault();}
+  },{passive:false});
+
   container.addEventListener('touchend',e=>{
-    if(timer){clearTimeout(timer);timer=null;}
-    if(target&&target._lp){e.preventDefault();target._lp=false;}
-    target=null;
+    if(!currentEl)return;
+    const dx=e.changedTouches[0].clientX-startX;
+    const dy=e.changedTouches[0].clientY-startY;
+    if(dx<-60&&Math.abs(dx)>Math.abs(dy)){
+      closeAllSwiped();
+      currentEl.classList.add('swiped');
+    }else if(currentEl.classList.contains('swiped')&&dx>30){
+      currentEl.classList.remove('swiped');
+    }else if(Math.abs(dx)<10&&Math.abs(dy)<10&&!currentEl.classList.contains('swiped')){
+      closeAllSwiped();
+    }
+    currentEl=null;
+  });
+
+  function closeAllSwiped(){
+    document.querySelectorAll('.swipe-content.swiped').forEach(el=>el.classList.remove('swiped'));
+  }
+
+  document.addEventListener('click',e=>{
+    if(!e.target.closest('.swipe-item')){closeAllSwiped();}
   });
 }
 
@@ -2016,7 +2088,7 @@ async function init(){
     if(saved) document.getElementById('sidebar').style.width=saved;
   }catch(e){}
   initResizer();
-  initLongPress();
+  initSwipeActions();
   render();
 }
 init();
