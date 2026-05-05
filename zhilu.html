@@ -470,6 +470,10 @@ body{
   border-top:1px solid var(--border);
   justify-content:flex-end;
   flex-shrink:0;
+  position:sticky;
+  bottom:0;
+  background:var(--bg);
+  z-index:10;
 }
 .source-editor-actions button{
   padding:7px 20px;
@@ -615,12 +619,30 @@ body{
     position:fixed;
     top:0;left:0;bottom:0;
     width:85%;min-width:0;
-    display:none;
     z-index:100;
     box-shadow:4px 0 20px rgba(0,0,0,0.3);
+    transform:translateX(-100%);
+    transition:transform 0.3s ease;
+    visibility:hidden;
   }
-  .sidebar.mobile-show{display:flex}
+  .sidebar.mobile-show{
+    transform:translateX(0);
+    visibility:visible;
+  }
   .sidebar-resizer{display:none}
+  .sidebar-overlay{
+    position:fixed;
+    top:0;right:0;bottom:0;left:0;
+    background:rgba(0,0,0,0.4);
+    z-index:99;
+    opacity:0;
+    visibility:hidden;
+    transition:opacity 0.3s ease;
+  }
+  .sidebar-overlay.active{
+    opacity:1;
+    visibility:visible;
+  }
 }
 </style>
 </head>
@@ -652,6 +674,7 @@ body{
     <input type="file" id="fileInput" accept=".html,.htm" multiple style="display:none" onchange="handleFileImport(event)">
     <div class="sidebar-resizer" id="sidebarResizer"></div>
   </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
   <!-- Main -->
   <main class="content">
@@ -806,7 +829,9 @@ function delData(store,id){
 function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function toggleSidebar(){
   const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('sidebarOverlay');
   sb.classList.toggle('mobile-show');
+  ov.classList.toggle('active', sb.classList.contains('mobile-show'));
 }
 
 // ===== Render =====
@@ -912,7 +937,10 @@ function selectFolder(id){
   document.getElementById('noteViewer').style.display='none';
   document.getElementById('emptyState').style.display='flex';
   // Close sidebar on mobile after selection
-  if(window.innerWidth<=600) document.getElementById('sidebar').classList.remove('mobile-show');
+  if(window.innerWidth<=600){
+    document.getElementById('sidebar').classList.remove('mobile-show');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+  }
   render();
 }
 
@@ -940,7 +968,10 @@ async function selectNote(id){
   // Auto-update from disk if linked
   autoUpdateNote(id);
   // Close sidebar on mobile after selection
-  if(window.innerWidth<=600) document.getElementById('sidebar').classList.remove('mobile-show');
+  if(window.innerWidth<=600){
+    document.getElementById('sidebar').classList.remove('mobile-show');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+  }
 }
 
 async function autoUpdateNote(id){
