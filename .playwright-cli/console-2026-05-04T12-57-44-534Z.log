@@ -1,0 +1,6 @@
+[     374ms] Uncaught ReferenceError: exports is not defined
+    at <anonymous> (https://cdn.jsdelivr.net/npm/markmap-lib@0.17.0/dist/index.js:1:22)
+[     384ms] Cannot use import statement outside a module
+[     390ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://localhost:8899/favicon.ico:0
+[    2397ms] ReferenceError: Transformer is not defined
+    at http://localhost:8899/markmap-debug.html:35:3

@@ -1,0 +1,7 @@
+- generic [active] [ref=e1]:
+  - 'heading "Test 1: Script loaded ok?" [level=2] [ref=e2]'
+  - generic [ref=e3]:
+    - text: waiting...
+    - text: ✅ jsdelivr markmap-lib OK
+    - text: ✅ jsdelivr markmap-view OK
+  - 'heading "Test 2: Markmap render" [level=2] [ref=e4]'
