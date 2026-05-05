@@ -1896,6 +1896,7 @@ async function uploadToGist(){
     const result=await res.json();
     setGistId(result.id);
     // Clean up old gists with same filename
+    let cleaned=0;
     try{
       const listRes=await fetch('https://api.github.com/gists',{
         headers:{'Authorization':`token ${token}`}
@@ -1904,15 +1905,15 @@ async function uploadToGist(){
         const gists=await listRes.json();
         const oldGists=gists.filter(g=>g.id!==result.id&&g.files&&g.files['zhilu-notes.json']);
         for(const g of oldGists){
-          await fetch(`https://api.github.com/gists/${g.id}`,{
+          const delRes=await fetch(`https://api.github.com/gists/${g.id}`,{
             method:'DELETE',
             headers:{'Authorization':`token ${token}`}
           });
+          if(delRes.ok) cleaned++;
         }
-        if(oldGists.length) console.log(`已清理 ${oldGists.length} 个旧 Gist`);
       }
     }catch(e){ /* ignore cleanup errors */ }
-    status.textContent=`✅ 已上传 ${notes.length} 篇笔记到 Gist`;
+    status.textContent=`✅ 已上传 ${notes.length} 篇笔记到 Gist${cleaned?`，已清理 ${cleaned} 个旧备份`:''}`;
     showToast('云端同步成功');
     // Refresh modal UI to show token saved state
     const tokenSection=document.getElementById('gistTokenSection');
