@@ -943,7 +943,7 @@ function renderFolderItem(all,fold,depth){
   const hasChildren=children.length>0;
   const sel=state.selectedFolder===fold.id;
   let html=`
-    <div class="tree-item ${sel?'active':''}" style="padding-left:${18+depth*16}px" 
+    <div class="tree-item ${sel?'active':''}" style="padding-left:${18+depth*16}px" data-folder-id="${fold.id}"
          onclick="selectFolder('${fold.id}');event.stopPropagation()"
          oncontextmenu="showFolderContext(event,'${fold.id}')">
       <span class="arrow ${expanded?'expanded':''}" onclick="event.stopPropagation();toggleFolder('${fold.id}')"
@@ -976,7 +976,7 @@ function renderNotes(notes){
 function renderNoteItem(note){
   const sel=state.selectedNote===note.id;
   return `
-    <div class="file-item ${sel?'active':''}" onclick="selectNote('${note.id}')"
+    <div class="file-item ${sel?'active':''}" data-note-id="${note.id}" onclick="selectNote('${note.id}')"
          oncontextmenu="showNoteContext(event,'${note.id}')">
       <span class="icon">📄</span>
       <span class="name">${escHtml(note.name.replace(/\.html?$/i,''))}</span>
@@ -1653,6 +1653,40 @@ function initResizer(){
   resizer.addEventListener('mousedown',onStart);
 }
 
+// ===== Long Press (mobile right-click equivalent) =====
+function initLongPress(){
+  const container=document.getElementById('treeContainer');
+  let timer=null,target=null,startX=0,startY=0;
+
+  container.addEventListener('touchstart',e=>{
+    const el=e.target.closest('.tree-item,.file-item');
+    if(!el)return;
+    target=el;
+    startX=e.touches[0].clientX;
+    startY=e.touches[0].clientY;
+    timer=setTimeout(()=>{
+      timer=null;
+      const folderId=el.dataset.folderId;
+      const noteId=el.dataset.noteId;
+      const fakeEvent={preventDefault:()=>{},clientX:startX,clientY:startY,target:el};
+      if(folderId){showFolderContext(fakeEvent,folderId);el._lp=true;}
+      else if(noteId){showNoteContext(fakeEvent,noteId);el._lp=true;}
+    },600);
+  },{passive:true});
+
+  container.addEventListener('touchmove',e=>{
+    if(!timer)return;
+    const dx=e.touches[0].clientX-startX,dy=e.touches[0].clientY-startY;
+    if(Math.abs(dx)>10||Math.abs(dy)>10){clearTimeout(timer);timer=null;target=null;}
+  },{passive:true});
+
+  container.addEventListener('touchend',e=>{
+    if(timer){clearTimeout(timer);timer=null;}
+    if(target&&target._lp){e.preventDefault();target._lp=false;}
+    target=null;
+  });
+}
+
 // ===== Export =====
 function exportCurrentNote(){
   if(!state.selectedNote) return showToast('请先选择笔记');
@@ -1974,6 +2008,7 @@ async function init(){
     if(saved) document.getElementById('sidebar').style.width=saved;
   }catch(e){}
   initResizer();
+  initLongPress();
   render();
 }
 init();
