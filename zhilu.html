@@ -1720,9 +1720,9 @@ function clearGistToken(){
 
 async function uploadToGist(){
   let token=getGistToken();
+  const tokenInput=document.getElementById('gistTokenInput');
   if(!token){
-    const input=document.getElementById('gistTokenInput');
-    token=input.value.trim();
+    token=tokenInput.value.trim();
     if(!token){ showToast('请输入 GitHub Token'); return; }
     if(document.getElementById('gistSaveToken').checked) setGistToken(token);
   }
@@ -1755,6 +1755,13 @@ async function uploadToGist(){
     setGistId(result.id);
     status.textContent=`✅ 已上传 ${notes.length} 篇笔记到 Gist`;
     showToast('云端同步成功');
+    // Refresh modal UI to show token saved state
+    const tokenSection=document.getElementById('gistTokenSection');
+    const actionsSection=document.getElementById('gistActions');
+    if(tokenSection&&actionsSection){
+      tokenSection.style.display='none';
+      actionsSection.style.display='block';
+    }
   }catch(e){
     status.textContent='❌ 上传失败：'+e.message;
     showToast('同步失败');
@@ -1763,16 +1770,16 @@ async function uploadToGist(){
 
 async function downloadFromGist(){
   let token=getGistToken();
+  const tokenInput=document.getElementById('gistTokenInput');
   if(!token){
-    const input=document.getElementById('gistTokenInput');
-    token=input.value.trim();
+    token=tokenInput.value.trim();
     if(!token){ showToast('请输入 GitHub Token'); return; }
     if(document.getElementById('gistSaveToken').checked) setGistToken(token);
   }
   const status=document.getElementById('gistStatus');
   status.textContent='正在下载...';
   try{
-    const gistId=getGistId();
+    let gistId=getGistId();
     if(!gistId){
       // List gists to find zhilu-notes
       const listRes=await fetch('https://api.github.com/gists',{
@@ -1782,9 +1789,10 @@ async function downloadFromGist(){
       const gists=await listRes.json();
       const found=gists.find(g=>g.files['zhilu-notes.json']);
       if(!found){ status.textContent='未找到知录同步数据'; return; }
-      setGistId(found.id);
+      gistId=found.id;
+      setGistId(gistId);
     }
-    const res=await fetch(`https://api.github.com/gists/${getGistId()}`,{
+    const res=await fetch(`https://api.github.com/gists/${gistId}`,{
       headers:{'Authorization':`token ${token}`}
     });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1804,6 +1812,13 @@ async function downloadFromGist(){
     status.textContent=`✅ 已下载 ${data.notes.length} 篇笔记`;
     showToast('同步完成');
     render();
+    // Refresh modal UI to show token saved state
+    const tokenSection=document.getElementById('gistTokenSection');
+    const actionsSection=document.getElementById('gistActions');
+    if(tokenSection&&actionsSection){
+      tokenSection.style.display='none';
+      actionsSection.style.display='block';
+    }
   }catch(e){
     status.textContent='❌ 下载失败：'+e.message;
     showToast('同步失败');
