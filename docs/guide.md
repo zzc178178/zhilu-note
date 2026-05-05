@@ -12,6 +12,21 @@
 https://zzc178178.github.io/zhilu-note/zhilu.html
 ```
 
+### 本地启动
+```powershell
+# 进入项目目录
+cd d:/AI-PM/zhilu-note
+
+# 启动本地服务器（推荐，禁用缓存）
+npx http-server -p 8899 -c-1
+
+# 或 Python
+python -m http.server 8899
+```
+访问：`http://127.0.0.1:8899/zhilu.html`
+
+> **提示**：用 `127.0.0.1` 比 `localhost` 更稳定，避免 DNS 解析问题。
+
 ### 安装到桌面（PWA）
 
 | 设备 | 操作 |
