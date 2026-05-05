@@ -1,5 +1,5 @@
 // Service Worker for 知录 · 笔记
-const CACHE_NAME = 'zhilu-v1';
+const CACHE_NAME = 'zhilu-v2';
 const PRECACHE_URLS = [
   './zhilu.html',
   './manifest.json',
