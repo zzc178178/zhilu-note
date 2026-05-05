@@ -1036,6 +1036,15 @@ function sanitizeContent(html){
   html = html.replace(/<style[^>]*>\s*\*\s*:\s*hover\s*\{[^}]*outline[^}]*\}\s*<\/style>\s*/gi,'');
   // Replace CDN Mermaid with local copy for offline support
   html = html.replace(/https:\/\/cdn\.jsdelivr\.net\/npm\/mermaid@11\/dist\/mermaid\.min\.js/gi,'./scripts/mermaid.min.js');
+  // Inject font-size adjustment for better reading
+  const fontScaleStyle='<style>html{font-size:14px !important}</style>';
+  if(html.includes('<head>')){
+    html=html.replace('<head>',`<head>${fontScaleStyle}`);
+  }else if(html.includes('<html>')){
+    html=html.replace('<html>',`<html>${fontScaleStyle}`);
+  }else{
+    html=fontScaleStyle+html;
+  }
   return html;
 }
 
