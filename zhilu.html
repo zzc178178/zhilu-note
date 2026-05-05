@@ -611,8 +611,16 @@ body{
   .sidebar{width:240px;min-width:240px}
 }
 @media(max-width:600px){
-  .sidebar{width:100%;min-width:0;display:none}
+  .sidebar{
+    position:fixed;
+    top:0;left:0;bottom:0;
+    width:85%;min-width:0;
+    display:none;
+    z-index:100;
+    box-shadow:4px 0 20px rgba(0,0,0,0.3);
+  }
   .sidebar.mobile-show{display:flex}
+  .sidebar-resizer{display:none}
 }
 </style>
 </head>
