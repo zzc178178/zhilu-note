@@ -680,6 +680,7 @@ body{
       <button onclick="exportAllNotes()" title="导出所有笔记为 HTML 文件">↓ 导出</button>
       <button onclick="showGistSyncModal()" title="GitHub Gist 云端同步" class="full-width">☁️ 云同步</button>
       <button onclick="refreshList()" class="full-width">↻ 刷新</button>
+      <button onclick="showHelp()" class="full-width" style="margin-top:4px;background:transparent;border:1px dashed var(--accent);color:var(--accent);font-size:0.75rem">? 使用帮助</button>
     </div>
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="搜索笔记..." oninput="onSearch(this.value)">
@@ -762,6 +763,27 @@ body{
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">取消</button>
       <button class="btn-confirm" id="modalConfirmBtn" onclick="confirmModal()">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- Help Modal (also shown on first launch) -->
+<div class="modal-overlay" id="helpOverlay">
+  <div class="modal" id="helpContent" style="width:480px;max-height:80vh;overflow-y:auto;position:relative;line-height:1.7">
+    <button onclick="closeHelp()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text-secondary);font-size:1.2rem;cursor:pointer;padding:4px;line-height:1" title="关闭">✕</button>
+    <h3 style="margin-bottom:16px">📓 知录使用说明</h3>
+    <div style="font-size:0.9rem;color:var(--text)">
+      <p><strong>📂 侧边栏</strong> — 管理文件夹和笔记，右键文件夹可新建子文件夹/重命名/删除</p>
+      <p><strong>↑ 导入</strong> — 选择 HTML 文件导入笔记</p>
+      <p><strong>↺ 同步</strong> — 选择文件夹，智能导入并保留层级结构</p>
+      <p><strong>☁️ 云同步</strong> — 使用 GitHub Gist 跨设备同步笔记</p>
+      <p><strong>✏️ 编辑</strong> — 选中笔记后点击编辑，支持加粗/标题/列表等格式</p>
+      <p><strong>📤 导出</strong> — 单篇或批量导出为 HTML 文件</p>
+      <p><strong>🔍 搜索</strong> — 实时搜索笔记名称和内容</p>
+      <p style="margin-top:12px;color:var(--text-secondary);font-size:0.8rem">💡 生成的 AI 笔记可直接拖拽到侧边栏或点击 ↑ 导入</p>
+    </div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-confirm" onclick="closeHelp()" style="width:100%">知道了</button>
     </div>
   </div>
 </div>
@@ -1905,6 +1927,14 @@ async function downloadFromGist(){
   }
 }
 
+// ===== Help / First Launch =====
+function showHelp(){
+  document.getElementById('helpOverlay').classList.add('open');
+}
+function closeHelp(){
+  document.getElementById('helpOverlay').classList.remove('open');
+}
+
 // ===== Init =====
 async function init(){
   await openDB();
@@ -1913,6 +1943,13 @@ async function init(){
   if(folders.length===0){
     await putData('folders',{id:'f_demo',name:'示例笔记',parentId:null,order:0,createdAt:Date.now()});
   }
+  // Show help on first launch
+  try{
+    if(!localStorage.getItem('zhilu_help_seen')){
+      localStorage.setItem('zhilu_help_seen','1');
+      setTimeout(showHelp, 300);
+    }
+  }catch(e){}
   // Restore sidebar width
   try{
     const saved=localStorage.getItem('zhilu_sidebar_width');
