@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RAG 从 Demo 到生产：四大关键环节完整拆解 - AI 笔记</title>
+<title>Agent记忆提取触发策略：四大框架对比 - AI 笔记</title>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <style>
 /* ===== Reset & Base ===== */
@@ -450,12 +450,40 @@ tr:hover td { background: #f8f9fb; }
   margin-left: 4px;
   font-weight: 600;
 }
+.node-leaf {
+  background: #f0fff4;
+  color: #276749;
+  padding: 2px 12px;
+  border-radius: 6px;
+  display: inline-block;
+  font-weight: 500;
+  font-size: 0.88rem;
+}
+.node-leaf .tree-tag {
+  font-size: 0.75rem;
+  padding: 1px 8px;
+  border-radius: 4px;
+  margin-left: 4px;
+  font-weight: 600;
+}
 
-/* ===== 模式②③：三列网格卡片 ===== */
+/* ===== 模式②③④：多列网格卡片 ===== */
 .diagram-grid-3 {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 12px;
+  margin-top: 8px;
+}
+.diagram-grid-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+.diagram-grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
   margin-top: 8px;
 }
 .grid-card {
@@ -700,6 +728,40 @@ tr:hover td { background: #f8f9fb; }
   .tab-btn { font-size: 0.85rem; padding: 12px 10px; }
   .css-node { font-size: 0.75rem; padding: 6px 12px; white-space: normal; }
   .diagram-section { padding: 18px 16px; }
+  /* Grid layouts keep columns but shrink */
+  .diagram-grid-3 { gap: 6px; }
+  .diagram-grid-3 .grid-card { padding: 10px; }
+  .diagram-grid-3 .grid-card-emoji { font-size: 1.3rem; }
+  .diagram-grid-3 .grid-card-title { font-size: 0.85rem; }
+  .diagram-grid-3 .grid-card-sub { font-size: 0.72rem; }
+  .diagram-grid-3 .grid-card-desc { font-size: 0.75rem; }
+  .diagram-grid-4 { gap: 5px; }
+  .diagram-grid-4 .grid-card { padding: 8px; }
+  .diagram-grid-4 .grid-card-emoji { font-size: 1.1rem; }
+  .diagram-grid-4 .grid-card-title { font-size: 0.8rem; }
+  .diagram-grid-4 .grid-card-sub { font-size: 0.7rem; }
+  .diagram-grid-4 .grid-card-desc { font-size: 0.7rem; }
+  .diagram-grid-auto { gap: 5px; }
+  .diagram-grid-auto .grid-card { padding: 8px; }
+  .diagram-grid-auto .grid-card-emoji { font-size: 1.1rem; }
+  .diagram-grid-auto .grid-card-title { font-size: 0.8rem; }
+  .diagram-grid-auto .grid-card-desc { font-size: 0.7rem; }
+  .tag-grid-2 { gap: 6px; }
+  /* Mermaid diagrams scroll horizontally if too wide */
+  .diagram-section .mermaid { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .diagram-section .mermaid svg { min-width: 320px; }
+  /* Step items stack vertically on very narrow screens */
+  .step-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+  /* Timeline tighter */
+  .timeline-item { gap: 10px; }
+  .timeline-marker { width: 30px; height: 30px; font-size: 0.7rem; }
+  /* CSS flow wraps nicely */
+  .css-flow-row { gap: 6px; }
+}
+@media (max-width: 380px) {
+  .tab-btn { font-size: 0.78rem; padding: 10px 6px; }
+  .tab-btn .icon { display: none; }
+  .tab-copy-btn { padding: 10px 10px; }
 }
 </style>
 </head>
@@ -709,13 +771,10 @@ tr:hover td { background: #f8f9fb; }
 
   <!-- ===== Header ===== -->
   <div class="note-header">
-    <div class="note-tag">RAG实战</div>
-    <h1>RAG 从 Demo 到生产：四大关键环节完整拆解</h1>
-    <div class="subtitle">鹅厂面试官追问：5000 份文档如何稳定答对？</div>
-    <div class="note-source">
-      <span class="source-label">原文来源</span>
-      <a class="source-link" href="https://mp.weixin.qq.com/s/YNcfSN0uv1c1LsLPzgB0jw" target="_blank">吴师兄学大模型 · 公众号</a>
-    </div>
+    <div class="note-tag">AI Agent</div>
+    <h1>Agent记忆提取触发策略：四大框架对比</h1>
+    <div class="subtitle">面试必备：成本控制与记忆覆盖率的平衡之道</div>
+    <div class='note-source'><span class='source-label'>原文来源</span><a class='source-link' href='https://mp.weixin.qq.com/s/V3LBQYZBNGRku1vj2iB9bw' target='_blank'>吴师兄学大模型</a></div>
   </div>
 
   <!-- ===== Fixed Tab Navigation ===== -->
@@ -738,286 +797,22 @@ tr:hover td { background: #f8f9fb; }
   <div class="tab-content text-tab active" id="tab-text" role="tabpanel">
     <div class="card">
       <div class="text-content">
-        <h2>📌 核心观点</h2>
-        <p>RAG 最难的不是跑通 Demo——<strong>Demo 只完成了 10% 的工作</strong>。真正让 RAG 在 5000 份文档中稳定答对，需要经历数据准备、检索召回、Query 理解、生成控制四大环节的系统性优化。</p>
-
-        <div class="highlight-box info">
-          <strong>核心矛盾</strong>：Demo 阶段用几份文档跑通 pipeline 很容易，但扩展到生产环境后，chunk 碎片化、检索噪音、意图误解、LLM 幻觉等问题逐一暴露。
-        </div>
-
-        <h2>📦 数据准备：知识库质量决定 RAG 上限</h2>
-        <h3>常见错误</h3>
-        <p>直接按固定字数切分 chunk（如 512 tokens），导致<strong>语义被切断</strong>，一个完整段落可能被拆到两个 chunk 中，检索结果碎片化。</p>
-
-        <h3>优化方案</h3>
-        <ul>
-          <li><strong>结构化切分</strong>：按文档逻辑结构（标题、段落、表格、列表）而非固定字节切分</li>
-          <li><strong>上下文路径</strong>：每个 chunk 补充层级信息，如 <code>产品名 &gt; 章节 &gt; 条款</code></li>
-          <li><strong>动态窗口</strong>：检索时返回命中 chunk 前后各一个 chunk，补充上下文</li>
-        </ul>
-
-        <div class="highlight-box success">
-          <strong>效果</strong>：召回准确率从 0.62 提升至 0.84
-        </div>
-
-        <h2>🔍 检索召回：不是找最相似的，是找最有用的</h2>
-        <h3>挑战</h3>
-        <p>Embedding 模型选择、召回阈值设定、纯语义检索的关键词精确匹配缺陷。</p>
-
-        <h3>解决方案</h3>
-        <ul>
-          <li>中文场景使用 <strong>BGE-large-zh</strong> 替代 OpenAI 的 text-embedding-ada-002，语义理解更准确</li>
-          <li>通过测试选定最佳召回阈值 <strong>0.72</strong>，兼顾召回率与精度</li>
-          <li>采用 <strong>向量检索 + BM25 混合检索</strong>，再用 <strong>Reranker 模型</strong> 重新排序</li>
-        </ul>
-
-        <div class="highlight-box success">
-          <strong>效果</strong>：召回准确率从 0.84 提升至 0.91
-        </div>
-
-        <h2>🧠 Query 理解：用户问的，不一定是系统该搜的</h2>
-        <h3>问题</h3>
-        <p>用户问题类型多样（事实查询、计算求解、NL2SQL、闲聊等），统一丢进向量检索会导致<strong>答非所问</strong>。</p>
-
-        <h3>三级意图识别路由</h3>
-        <ul>
-          <li><strong>规则匹配</strong>：关键词/正则匹配，覆盖大部分常见问题，<span class="tag-green">零延迟</span></li>
-          <li><strong>BERT 分类器</strong>：模型分类，毫秒级响应，<span class="tag-purple">高准确率</span></li>
-          <li><strong>LLM 兜底</strong>：处理疑难 case，<span class="tag-orange">最强理解</span>但成本高</li>
-        </ul>
-
-        <p>根据意图路由到不同模块：<span class="tag-blue">知识问答→混合检索</span> <span class="tag-green">计算→计算模块</span> <span class="tag-purple">数据查询→NL2SQL</span> <span class="tag-orange">闲聊→通用对话</span></p>
-
-        <h3>高级技巧</h3>
-        <p><strong>多索引路由</strong>：按主题分区索引，检索时只搜索相关分区，提高精度并降低延迟。</p>
-
-        <h2>✍️ 生成阶段：RAG 不是简单的"检索+生成"</h2>
-        <h3>常见问题</h3>
-        <p>LLM 自由发挥、模棱两可、答非所问。</p>
-
-        <h3>优化方案</h3>
-        <ul>
-          <li><strong>强约束 Prompt</strong>：要求严格基于检索文档回答，禁止模糊表达，要求注明来源</li>
-          <li><strong>置信度评估</strong>：LLM 输出时附带 1-5 分置信度分数，低于 3 分自动触发二次检索或扩大检索范围</li>
-        </ul>
-
-        <div class="highlight-box success">
-          <strong>效果</strong>：答非所问投诉率从 18% 降到 7%
-        </div>
-
-        <h2>🔧 系统性工程协同</h2>
-        <p>RAG 是端到端系统工程，每一细节都需要测试与调优：</p>
-        <ul>
-          <li><strong>文档增量更新</strong>：知识库变更时的同步机制</li>
-          <li><strong>检索性能</strong>：Milvus 分区索引，只检索相关分区</li>
-          <li><strong>响应速度</strong>：高频 query 缓存、流式输出</li>
-          <li><strong>监控指标</strong>：召回准确率、投诉率、响应延迟持续跟踪</li>
-        </ul>
-
-        <h2>💡 面试回答框架</h2>
-        <p>面试中聊 RAG 难点，建议按四个层次组织：</p>
-        <ol>
-          <li><strong>系统性思维</strong> → RAG 是端到端工程，不止是"检索+生成"</li>
-          <li><strong>具体坑点</strong> → chunk 碎片化、检索噪音、意图误解、LLM 幻觉</li>
-          <li><strong>量化指标</strong> → 召回率 0.62→0.84→0.91，投诉率 18%→7%</li>
-          <li><strong>工程能力</strong> → 增量更新、分区索引、缓存、监控</li>
-        </ol>
-
-        <div class="footer-tags">
-          <span class="tag-blue">RAG</span>
-          <span class="tag-green">生产部署</span>
-          <span class="tag-purple">检索增强生成</span>
-          <span class="tag-orange">Intent Routing</span>
-          <span class="tag-blue">置信度评估</span>
-          <span class="tag-green">Hybrid Search</span>
-        </div>
+        <h2>一、为什么记忆提取是个问题？</h2><p>每次触发记忆提取都需要<strong>额外调用一次 LLM API</strong>，这意味着每次提取都有延迟和费用开销。如果每轮对话都触发提取，成本会迅速失控。所以触发策略的选择直接影响系统成本和响应速度。</p><div class='highlight-box'>核心矛盾：成本控制 ↔ 记忆覆盖率 — 触发太频繁则成本高，触发太少则可能错过关键信息</div><p>各大框架对此提出了不同解法，核心思路分为<strong>规则驱动</strong>和<strong>LLM自主驱动</strong>两大流派。</p><h2>二、规则驱动策略</h2><p>规则驱动策略依赖明确的数值阈值或积分条件来判断是否触发记忆提取，逻辑确定、成本可控。</p><h3>1. Claude Code：消息数量阈值 + Coalescing</h3><p><strong>设计思想</strong>：对话天然按轮次组织，用累计新消息数而非时间间隔作为触发条件，更贴合实际使用模式。</p><p><strong>核心参数</strong>：<code>MIN_NEW_MESSAGES = 4</code>，新增至少 4 条消息才触发一次提取。</p><p><strong>水位线机制</strong>：<code>_watermark</code> 记录上次提取时的消息总数，每次 REPL 结束后计算 <code>increment = 当前消息数 - watermark</code>，只有 <code>increment >= 4</code> 才真正触发。</p><p><strong>并发控制 — Coalescing（合并）</strong>：使用三个状态变量确保任意时刻最多一个提取任务运行：<code>_running</code>（是否有任务在运行）、<code>_dirty</code>（运行中有无新请求）、<code>_watermark</code>（水位线）。请求到来时若正在运行则设 <code>_dirty=True</code> 后返回，运行完成后检查 <code>_dirty</code> 决定是否重新运行。</p><p><strong>主对话完全解耦</strong>：提取任务通过 <code>asyncio.create_task()</code> 在后台异步执行（fire-and-forget），不阻塞用户实时交互。</p><div class='highlight-box'>优点：低API调用、主对话完全解耦、确定性高 ｜ 缺点：可能错过较短消息内的短暂重要信息、4条为经验值并非最优</div><p><strong>实测数据</strong>：API调用次数相比「每轮触发」降低约 <strong>60%</strong>，记忆覆盖率无明显下降。</p><table><thead><tr><th>参数</th><th>值</th><th>说明</th></tr></thead><tbody><tr><td><code>MIN_NEW_MESSAGES</code></td><td>4</td><td>新消息数量阈值</td></tr><tr><td><code>_running</code></td><td>bool</td><td>是否有提取任务运行</td></tr><tr><td><code>_dirty</code></td><td>bool</td><td>运行中是否有新请求</td></tr><tr><td><code>_watermark</code></td><td>int</td><td>上次提取时消息水位</td></tr></tbody></table><h3>2. Generative Agents：重要性积分触发反思</h3><p><strong>设计思想</strong>：对每条记忆评估其信息价值，只有当价值累积到一定程度才触发深度反思，避免对大量低价值信息做无效提取。</p><p><strong>Memory Stream</strong>：所有事件以自然语言流水账形式记录，不做预过滤。</p><p><strong>重要性评分</strong>：每条记忆写入时，由 LLM 在 1-10 分范围打分。例如「我和 Isabella 聊了天」得 6 分，「决定组织选举讨论」得 9 分，「走过图书馆」得 1 分。</p><p><strong>触发条件</strong>：<code>importance_sum >= REFLECTION_THRESHOLD</code>，其中 <code>REFLECTION_THRESHOLD = 150</code>。LLM 扫描最近的 100 条记忆，生成更高阶的抽象洞察作为新记忆写入。</p><p><strong>三维加权检索</strong>：<code>score = α × recency_score + β × importance_score + γ × relevance_score</code>，其中 <code>recency_score = 0.995 ^ hours_passed</code>（时间衰减）。</p><div class='highlight-box'>优点：对信息价值高度敏感，几百句「好的」不触发 ｜ 缺点：每条记忆需LLM打分，总体API调用可能更高；写入为同步操作</div><p><strong>本质</strong>：事件驱动机制（非时钟驱动），用大量小调用（每条记忆打分）换取减少大调用（提取反思）。</p><h2>三、LLM自主驱动策略</h2><p>LLM自主驱动策略将判断权交给模型本身，灵活但非确定性。</p><h3>3. MemGPT：LLM自主判断</h3><p><strong>设计思想</strong>：类比操作系统虚拟内存管理，将 LLM 的 Context Window 比作内存（有限快存取），外部存储比作磁盘（大容量慢速）。</p><p><strong>实现方式</strong>：LLM 通过 Function Calling 自主决定何时操作记忆，无需外部触发逻辑：<code>memory_search()</code>（从外部存储检索）、<code>memory_insert()</code>（写入外部存储）、<code>core_memory_replace()</code>（修改核心记忆）、<code>conversation_search()</code>（搜索对话历史）。</p><div class='highlight-box'>优点：最大灵活性，理论上最精确 ｜ 缺点：Function Calling不稳定、记忆操作与主对话耦合导致高延迟、Token消耗不可控</div><p><strong>适用场景</strong>：后台批处理型 Agent（不需实时响应但需大量上下文管理）。</p><h2>四、提取结果规范化</h2><h3>4. Mem0：CRUD四操作模型</h3><p><strong>设计思想</strong>：不纠结于「什么时候提取」，而是关注「提取之后怎么办」——通过规范化操作分类来降低成本、提升数据质量。</p><p><strong>四操作模型</strong>：<span class='tag-pill tag-blue'>ADD</span> 全新信息、<span class='tag-pill tag-purple'>UPDATE</span> 更新已有记忆的值、<span class='tag-pill tag-orange'>DELETE</span> 过时或否定的记忆、<span class='tag-pill tag-green'>NOOP</span> 没有值得记的新信息。</p><p><strong>核心创新 — NOOP</strong>：虽然仍调用了 LLM，但精确标识「这轮无新内容」，避免盲目写入和数据污染。可与任意触发策略叠加使用。</p><p><strong>增量更新</strong>：用 <code>UPDATE</code> 代替全量重写，避免覆盖未变化部分。</p><div class='highlight-box'>优点：NOOP避免无效写入、增量更新省token、数据质量高 ｜ 缺点：每轮仍需调用LLM（即便返回NOOP）</div><p><strong>实测数据</strong>（对比 OpenAI 基础方案）：准确率提升 <strong>+26%</strong>、P95 延迟降低 <strong>-91%</strong>、Token 成本节省 <strong>90%+</strong>。</p><h2>五、面试回答框架</h2><blockquote><strong>参考话术：</strong>「记忆提取有成本，每次触发要额外调一次 LLM，所以触发策略的核心是在成本控制和记忆覆盖率之间取平衡。」</blockquote><p><strong>回答四步法：</strong></p><ol><li><strong>说本质</strong>：记忆提取有成本，核心矛盾是成本控制 vs 记忆覆盖率</li><li><strong>分策略</strong>：规则驱动（Claude Code数量阈值、Generative Agents重要性积分）vs LLM自主驱动（MemGPT）</li><li><strong>处理结果</strong>：提取后的操作规范化——Mem0的CRUD四操作模型，NOOP是关键</li><li><strong>结合实践</strong>：Claude Code策略实测API调用降低60%，Mem0策略准确率+26%、延迟-91%、成本-90%</li></ol><div class='footer-tags'><span class='tag-pill tag-blue'>记忆提取</span><span class='tag-pill tag-purple'>成本优化</span><span class='tag-pill tag-green'>Agent框架</span><span class='tag-pill tag-orange'>触发策略</span><span class='tag-pill tag-purple'>Claude Code</span><span class='tag-pill tag-blue'>Mem0</span></div>
       </div>
     </div>
   </div>
 
   <!-- ===== Diagram Tab ===== -->
   <div class="tab-content diagram-tab" id="tab-diagram" role="tabpanel">
-    <!-- Diagram 1: RAG 系统整体架构 -->
-    <div class="diagram-section">
-      <h3>🏗️ RAG 生产系统整体架构</h3>
-      <div class="diagram-desc">从用户 Query 到最终回答的完整链路，含反馈回路</div>
-      <div class="mermaid">
-flowchart TB
-    User[用户Query] --> QI[Query理解]
-
-    QI --> Route{三级意图路由}
-    Route -->|知识问答| Search[混合检索]
-    Route -->|计算求解| Calc[计算模块]
-    Route -->|数据查询| SQL[NL2SQL]
-    Route -->|闲聊| Chat[通用对话]
-
-    subgraph "检索层"
-        Search --> Vec[(向量检索<br>BGE-large-zh)]
-        Search --> BM[(BM25 关键词)]
-        Vec --> RR[Reranker 重排序]
-        BM --> RR
-    end
-
-    subgraph "知识库层"
-        Doc[(文档库)] --> Chunk[结构化切分]
-        Chunk --> Path[上下文路径标注]
-        Path --> Index[(分区索引)]
-    end
-
-    RR --> Gen[LLM 生成]
-    Index -.-> Search
-    Gen --> Score{置信度 1-5}
-    Score -->|>=3 分| Ans[最终回答]
-    Score -->|<3 分| Retry[二次检索/扩范围]
-    Retry --> Search
-      </div>
-    </div>
-
-    <!-- Diagram 2: 数据准备三大策略 -->
-    <div class="diagram-section">
-      <h3>📦 数据准备：三大优化策略</h3>
-      <div class="diagram-desc">从固定字数切分到结构化智能分块</div>
-      <div class="diagram-grid-3">
-        <div class="grid-card">
-          <div class="grid-card-label">策略一</div>
-          <div class="grid-card-title">📄 结构化切分</div>
-          <div class="grid-card-desc">按文档逻辑结构（标题、段落、表格、列表）切分，而非固定 512 token</div>
-        </div>
-        <div class="grid-card">
-          <div class="grid-card-label">策略二</div>
-          <div class="grid-card-title">🔗 上下文路径</div>
-          <div class="grid-card-desc">每个 chunk 补充"产品名&gt;章节&gt;条款"层级路径，保留语义上下文</div>
-        </div>
-        <div class="grid-card">
-          <div class="grid-card-label">策略三</div>
-          <div class="grid-card-title">🔲 动态窗口</div>
-          <div class="grid-card-desc">检索命中时返回前后各一个 chunk，填补上下文空白</div>
-        </div>
-      </div>
-      <div class="effect-bar">📊 效果：召回准确率从 0.62 提升至 0.84</div>
-    </div>
-
-    <!-- Diagram 3: 混合检索 -->
-    <div class="diagram-section">
-      <h3>🎯 混合检索：三重保障</h3>
-      <div class="diagram-desc">向量语义 + 关键词精确 + Reranker 重排序</div>
-      <div class="diagram-grid-3">
-        <div class="grid-card grid-card-icon">
-          <div class="grid-card-label">方法一</div>
-          <div class="grid-card-emoji">🧮</div>
-          <div class="grid-card-title">向量检索</div>
-          <div class="grid-card-sub">BGE-large-zh 模型</div>
-          <div class="grid-card-desc">语义相似度匹配，模糊搜索</div>
-        </div>
-        <div class="grid-card grid-card-icon">
-          <div class="grid-card-label">方法二</div>
-          <div class="grid-card-emoji">🔑</div>
-          <div class="grid-card-title">BM25 关键词</div>
-          <div class="grid-card-sub">精确匹配</div>
-          <div class="grid-card-desc">关键词精确命中，弥补语义模糊</div>
-        </div>
-        <div class="grid-card grid-card-icon">
-          <div class="grid-card-label">方法三</div>
-          <div class="grid-card-emoji">⚖️</div>
-          <div class="grid-card-title">Reranker</div>
-          <div class="grid-card-sub">重排序模型</div>
-          <div class="grid-card-desc">混合结果统一排序，精排 Top-K</div>
-        </div>
-      </div>
-      <div class="info-bar">
-        <span>召回阈值 0.72</span><span class="bar-sep">|</span>
-        <span>语义模糊→向量</span><span class="bar-sep">|</span>
-        <span>关键词精确→BM25</span>
-      </div>
-      <div class="effect-bar">📊 效果：召回准确率从 0.84 提升至 0.91</div>
-    </div>
-
-    <!-- Diagram 4: Query 理解三级路由 -->
-    <div class="diagram-section">
-      <h3>🧠 Query 理解：三级意图识别路由</h3>
-      <div class="diagram-desc">规则匹配 → BERT 分类器 → LLM 兜底，层层递进</div>
-      <div class="step-list">
-        <div class="step-item" style="background:#e8f0fe;">
-          <div class="step-circle" style="background:#667eea;">1</div>
-          <div class="step-content">
-            <div class="step-title">第一级 · 规则匹配 <span class="step-tag" style="color:#667eea;">⚡ 零延迟</span></div>
-            <div class="step-desc">关键词/正则覆盖大部分常见问题，兜住常见 query</div>
-          </div>
-        </div>
-        <div class="step-item" style="background:#f0ebff;">
-          <div class="step-circle" style="background:#7c3aed;">2</div>
-          <div class="step-content">
-            <div class="step-title">第二级 · BERT 分类器 <span class="step-tag" style="color:#7c3aed;">⏱ 毫秒级</span></div>
-            <div class="step-desc">模型分类意图，高准确率，覆盖大多数场景</div>
-          </div>
-        </div>
-        <div class="step-item" style="background:#fef4e8;">
-          <div class="step-circle" style="background:#f59e0b;">3</div>
-          <div class="step-content">
-            <div class="step-title">第三级 · LLM 兜底 <span class="step-tag" style="color:#f59e0b;">🧠 最强理解</span></div>
-            <div class="step-desc">处理疑难 case，理解复杂语义，但成本较高</div>
-          </div>
-        </div>
-      </div>
-      <div class="info-bar" style="text-align:center;">
-        <strong>🔀 路由分发：</strong>知识问答→混合检索 &nbsp;|&nbsp; 计算求解→计算模块 &nbsp;|&nbsp; 数据查询→NL2SQL &nbsp;|&nbsp; 闲聊→通用对话
-      </div>
-    </div>
-
-    <!-- Diagram 5: 工程协同 -->
-    <div class="diagram-section">
-      <h3>⚡ 工程协同：系统性优化</h3>
-      <div class="diagram-desc">RAG 生产落地的关键工程细节</div>
-      <div class="tag-grid-2">
-        <div class="tag-card">
-          <div class="tag-card-title">📤 文档管理</div>
-          <div class="tag-group">
-            <span class="tag-pill tag-blue">增量更新脚本</span>
-            <span class="tag-pill tag-blue">差异化 embedding</span>
-          </div>
-        </div>
-        <div class="tag-card">
-          <div class="tag-card-title">🎯 检索性能</div>
-          <div class="tag-group">
-            <span class="tag-pill tag-purple">Milvus 分区索引</span>
-            <span class="tag-pill tag-purple">只检索相关分区</span>
-          </div>
-        </div>
-        <div class="tag-card">
-          <div class="tag-card-title">⚡ 响应速度</div>
-          <div class="tag-group">
-            <span class="tag-pill tag-green">高频 query 缓存</span>
-            <span class="tag-pill tag-green">流式输出</span>
-          </div>
-        </div>
-        <div class="tag-card">
-          <div class="tag-card-title">📊 监控指标</div>
-          <div class="tag-group">
-            <span class="tag-pill tag-orange">召回准确率</span>
-            <span class="tag-pill tag-orange">投诉率</span>
-            <span class="tag-pill tag-orange">响应延迟</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Diagram 6: 面试回答框架 -->
-    <div class="diagram-section">
-      <h3>🌳 面试回答框架</h3>
-      <div class="diagram-desc">聊 RAG 难点，按四个层次组织回答</div>
-      <div class="tree-wrap">
-        <ul>
-          <li><span class="node-root">RAG 生产落地难点</span>
-            <ul>
-              <li><span class="node-label">🌐 系统性思维</span> <span class="tree-tag tag-blue">宏观视角</span></li>
-              <li><span class="node-label">🔍 具体坑点 <span class="arrow">→</span> Chunk 碎片化、检索噪音、意图误解、LLM 幻觉</span></li>
-              <li><span class="node-label">📊 量化指标 <span class="arrow">→</span> 召回率 0.62→0.84→0.91，投诉率 18%→7%</span></li>
-              <li><span class="node-label">⚙️ 工程能力 <span class="arrow">→</span> 增量更新、分区索引、缓存、监控</span></li>
-            </ul>
-          </li>
-        </ul>
-      </div>
-    </div>
+    <div class='diagram-section'><h3>🎯 记忆提取策略：两大流派</h3><div class='mermaid'>flowchart LR
+    M[记忆提取策略] --> R[规则驱动]
+    M --> L[LLM自主驱动]
+    R --> C1[Claude Code<br/>数量阈值≥4条]
+    R --> C2[Generative Agents<br/>重要性积分≥150]
+    L --> C3[MemGPT<br/>LLM函数调用]
+    C1 -.-> E1[确定性<br/>成本可控]
+    C2 -.-> E1
+    C3 -.-> E2[灵活<br/>非确定性]</div></div><div class='diagram-section'><h3>📊 四大框架对比</h3><div class='diagram-grid-4'><div class='grid-card grid-card-icon'><div class='grid-card-label'>Claude Code</div><div class='grid-card-emoji'>🔢</div><div class='grid-card-title'>数量阈值</div><div class='grid-card-desc'>MIN=4条消息<br>水位线+Coalescing<br>异步解耦<br>确定性高</div></div><div class='grid-card grid-card-icon'><div class='grid-card-label'>Generative Agents</div><div class='grid-card-emoji'>🎯</div><div class='grid-card-title'>重要性积分</div><div class='grid-card-desc'>sum≥150触发<br>三维加权检索<br>事件驱动<br>写入同步</div></div><div class='grid-card grid-card-icon'><div class='grid-card-label'>MemGPT</div><div class='grid-card-emoji'>🧠</div><div class='grid-card-title'>LLM自主判断</div><div class='grid-card-desc'>类比虚拟内存<br>函数调用操作记忆<br>灵活但延迟高<br>Token不可控</div></div><div class='grid-card grid-card-icon'><div class='grid-card-label'>Mem0</div><div class='grid-card-emoji'>📋</div><div class='grid-card-title'>CRUD四操作</div><div class='grid-card-desc'>每轮+NOOP过滤<br>增量更新<br>数据质量高<br>准确率+26%</div></div></div></div><div class='diagram-section'><h3>⚡ Mem0：CRUD四操作模型</h3><div class='diagram-desc'>每轮触发 + NOOP 过滤，与任何触发策略叠加</div><div class='css-flow'><div class='css-flow-row'><span class='css-node blue'>ADD</span><span class='css-arrow'>→</span><span class='css-node purple'>UPDATE</span><span class='css-arrow'>→</span><span class='css-node orange'>DELETE</span><span class='css-arrow'>→</span><span class='css-node green'>NOOP</span></div></div><div class='effect-bar'>📊 准确率+26% ｜ P95延迟-91% ｜ 成本-90%+</div></div><div class='diagram-section'><h3>💡 面试回答四步法</h3><div class='step-list'><div class='step-item' style='background:#e8f0fe;'><div class='step-circle' style='background:#667eea;'>1</div><div class='step-content'><div class='step-title'>说本质 <span class='step-tag' style='color:#667eea;'>成本 vs 覆盖率</span></div><div class='step-desc'>每次提取额外调用LLM，找到平衡点</div></div></div><div class='step-item' style='background:#f0ebff;'><div class='step-circle' style='background:#7c3aed;'>2</div><div class='step-content'><div class='step-title'>分策略 <span class='step-tag' style='color:#7c3aed;'>规则驱动 vs LLM自主</span></div><div class='step-desc'>Claude Code/GA vs MemGPT</div></div></div><div class='step-item' style='background:#fef4e8;'><div class='step-circle' style='background:#f59e0b;'>3</div><div class='step-content'><div class='step-title'>处理结果 <span class='step-tag' style='color:#f59e0b;'>CRUD四操作</span></div><div class='step-desc'>ADD/UPDATE/DELETE/NOOP</div></div></div><div class='step-item' style='background:#e8f5e9;'><div class='step-circle' style='background:#10b981;'>4</div><div class='step-content'><div class='step-title'>结合实践 <span class='step-tag' style='color:#10b981;'>数据说话</span></div><div class='step-desc'>API降低60%，准确率+26%</div></div></div></div></div><div class='diagram-section'><h3>🌳 框架选型决策树</h3><div class='diagram-desc'>根据场景选择最合适的触发策略</div><div class='tree-wrap'><ul><li><span class='node-root'>🤖 需要记忆提取?</span><ul><li><span class='node-label'>实时交互 <span class='arrow'>→</span> 成本敏感</span><ul><li><span class='node-leaf'>Claude Code <span class='tree-tag tag-blue'>异步解耦</span></span></li></ul></li><li><span class='node-label'>角色/社交 <span class='arrow'>→</span> 信息密度高</span><ul><li><span class='node-leaf'>Generative Agents <span class='tree-tag tag-green'>事件驱动</span></span></li></ul></li><li><span class='node-label'>长上下文 <span class='arrow'>→</span> 批处理</span><ul><li><span class='node-leaf'>MemGPT <span class='tree-tag tag-orange'>最大灵活</span></span></li></ul></li><li><span class='node-label'>生产级 <span class='arrow'>→</span> 数据质量要求高</span><ul><li><span class='node-leaf'>Mem0 <span class='tree-tag tag-purple'>增量更新</span></span></li></ul></li></ul></li></ul></div></div>
   </div>
 
   <!-- ===== My Note Tab (blank, user fills in) ===== -->
@@ -1248,7 +1043,7 @@ function tableToMd(table){
 }
 
 // ===== My Note (persisted to localStorage) =====
-const MN_KEY='ai_note_mynote_' + encodeURIComponent('RAG 从 Demo 到生产：四大关键环节完整拆解');
+const MN_KEY='ai_note_mynote_' + encodeURIComponent('Agent记忆提取触发策略：四大框架对比');
 
 function loadMyNote(){
   const editor=document.getElementById('mynoteEditor');
