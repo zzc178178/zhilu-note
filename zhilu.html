@@ -663,6 +663,7 @@ body{
       <button onclick="importFiles()" title="选择 HTML 文件批量导入">↑ 导入</button>
       <button onclick="syncAINotes()" title="选择目录智能同步，去重+保留层级">↺ 同步</button>
       <button onclick="exportAllNotes()" title="导出所有笔记为 HTML 文件">↓ 导出</button>
+      <button onclick="showGistSyncModal()" title="GitHub Gist 云端同步">☁️ 云同步</button>
       <button onclick="refreshList()" class="full-width">↻ 刷新</button>
     </div>
     <div class="search-box">
@@ -744,6 +745,34 @@ body{
       <button class="btn-cancel" onclick="closeModal()">取消</button>
       <button class="btn-confirm" id="modalConfirmBtn" onclick="confirmModal()">确定</button>
     </div>
+  </div>
+</div>
+
+<!-- Gist Sync Modal -->
+<div class="modal-overlay" id="gistModalOverlay">
+  <div class="modal" id="gistModalContent" style="width:420px">
+    <h3>☁️ GitHub Gist 同步</h3>
+    <div id="gistTokenSection">
+      <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;line-height:1.5">
+        使用 GitHub Gist 免费同步笔记到云端，多设备共享。<br>
+        <a href="https://github.com/settings/tokens/new?description=zhilu-sync&scopes=gist" target="_blank" style="color:var(--accent-strong)">→ 点击创建 Token（只需 gist 权限）</a>
+      </p>
+      <input type="password" id="gistTokenInput" placeholder="粘贴 GitHub Token..." style="margin-bottom:12px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;cursor:pointer">
+        <input type="checkbox" id="gistSaveToken" checked> 记住 Token（本地存储）
+      </label>
+    </div>
+    <div id="gistActions" style="display:none">
+      <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px">
+        Token 已保存。<a href="#" onclick="clearGistToken();return false" style="color:var(--accent-strong)">清除 Token</a>
+      </p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeGistModal()">关闭</button>
+      <button class="btn-confirm" onclick="uploadToGist()" title="上传当前所有笔记到 Gist">↑ 上传</button>
+      <button class="btn-confirm" onclick="downloadFromGist()" title="从 Gist 下载笔记到本地">↓ 下载</button>
+    </div>
+    <div id="gistStatus" style="margin-top:12px;font-size:0.85rem;color:var(--text-secondary);min-height:20px"></div>
   </div>
 </div>
 
@@ -1003,7 +1032,10 @@ async function autoUpdateNote(id){
 function sanitizeContent(html){
   if(!html)return html;
   // Remove any lingering editing hint styles
-  return html.replace(/<style[^>]*>\s*\*\s*:\s*hover\s*\{[^}]*outline[^}]*\}\s*<\/style>\s*/gi,'');
+  html = html.replace(/<style[^>]*>\s*\*\s*:\s*hover\s*\{[^}]*outline[^}]*\}\s*<\/style>\s*/gi,'');
+  // Replace CDN Mermaid with local copy for offline support
+  html = html.replace(/https:\/\/cdn\.jsdelivr\.net\/npm\/mermaid@11\/dist\/mermaid\.min\.js/gi,'./scripts/mermaid.min.js');
+  return html;
 }
 
 function toggleFolder(id){

@@ -3,6 +3,7 @@ const CACHE_NAME = 'zhilu-v2';
 const PRECACHE_URLS = [
   './zhilu.html',
   './manifest.json',
+  './scripts/mermaid.min.js',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
