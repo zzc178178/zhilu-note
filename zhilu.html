@@ -273,6 +273,23 @@ body{
 }
 .empty-state .hint:hover{border-color:var(--accent);background:rgba(124,142,181,0.06)}
 .empty-state .hint.dragover{border-color:var(--accent-strong);background:rgba(90,122,181,0.1);transform:scale(1.02)}
+.mobile-import-btn{
+  display:none;
+  margin-top:12px;
+  padding:10px 24px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background:var(--bg);
+  color:var(--text);
+  font-size:0.9rem;
+  cursor:pointer;
+  transition:var(--transition);
+}
+.mobile-import-btn:hover{background:var(--bg-hover);border-color:var(--accent)}
+@media(max-width:768px){
+  .mobile-import-btn{display:block}
+  .empty-state .hint{display:none}
+}
 
 /* Note viewer */
 .note-viewer{
@@ -600,10 +617,11 @@ body{
     <div class="empty-state" id="emptyState">
       <div class="emoji">📝</div>
       <h2>选择一篇笔记</h2>
-      <p>从左侧目录选择笔记，或拖拽 HTML 文件到下方区域导入</p>
+      <p>从左侧目录选择笔记，或导入 HTML 文件</p>
       <div class="hint" id="dropZone" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
         📥 拖拽文件到此处导入
       </div>
+      <button class="mobile-import-btn" onclick="document.getElementById('fileInput').click()">📁 选择文件导入</button>
     </div>
 
     <div class="note-viewer" id="noteViewer" style="display:none">
