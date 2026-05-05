@@ -186,6 +186,9 @@ body{
   transition:var(--transition);
   gap:6px;
   font-size:0.83rem;
+  user-select:none;
+  -webkit-user-select:none;
+  touch-action:manipulation;
 }
 .tree-item:hover{background:var(--sidebar-hover)}
 .tree-item.active{background:var(--sidebar-active);color:var(--text-sidebar-active)}
@@ -228,6 +231,9 @@ body{
   transition:var(--transition);
   gap:6px;
   font-size:0.82rem;
+  user-select:none;
+  -webkit-user-select:none;
+  touch-action:manipulation;
 }
 .file-item:hover{background:var(--sidebar-hover)}
 .file-item.active{background:var(--sidebar-active);color:var(--text-sidebar-active)}
@@ -1661,6 +1667,7 @@ function initLongPress(){
   container.addEventListener('touchstart',e=>{
     const el=e.target.closest('.tree-item,.file-item');
     if(!el)return;
+    e.preventDefault();
     target=el;
     startX=e.touches[0].clientX;
     startY=e.touches[0].clientY;
@@ -1672,7 +1679,7 @@ function initLongPress(){
       if(folderId){showFolderContext(fakeEvent,folderId);el._lp=true;}
       else if(noteId){showNoteContext(fakeEvent,noteId);el._lp=true;}
     },600);
-  },{passive:true});
+  },{passive:false});
 
   container.addEventListener('touchmove',e=>{
     if(!timer)return;
