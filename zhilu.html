@@ -993,6 +993,7 @@ function selectFolder(id){
 }
 
 async function selectNote(id){
+  exitEditorIfActive();
   const note=await getOne('notes',id);
   if(!note)return;
   state.selectedNote=id;
