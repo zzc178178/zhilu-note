@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI面试题：数据评测集构建与质量保证 - AI 笔记</title>
+<title>CHATBI 意图识别 Agent 设计方案 - AI 笔记</title>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <style>
 /* ===== Reset & Base ===== */
@@ -700,6 +700,29 @@ tr:hover td { background: #f8f9fb; }
   .tab-btn { font-size: 0.85rem; padding: 12px 10px; }
   .css-node { font-size: 0.75rem; padding: 6px 12px; white-space: normal; }
   .diagram-section { padding: 18px 16px; }
+  /* Grid layouts keep columns but shrink */
+  .diagram-grid-3 { gap: 6px; }
+  .diagram-grid-3 .grid-card { padding: 10px; }
+  .diagram-grid-3 .grid-card-emoji { font-size: 1.3rem; }
+  .diagram-grid-3 .grid-card-title { font-size: 0.85rem; }
+  .diagram-grid-3 .grid-card-sub { font-size: 0.72rem; }
+  .diagram-grid-3 .grid-card-desc { font-size: 0.75rem; }
+  .tag-grid-2 { gap: 6px; }
+  /* Mermaid diagrams scroll horizontally if too wide */
+  .diagram-section .mermaid { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .diagram-section .mermaid svg { min-width: 320px; }
+  /* Step items stack vertically on very narrow screens */
+  .step-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+  /* Timeline tighter */
+  .timeline-item { gap: 10px; }
+  .timeline-marker { width: 30px; height: 30px; font-size: 0.7rem; }
+  /* CSS flow wraps nicely */
+  .css-flow-row { gap: 6px; }
+}
+@media (max-width: 380px) {
+  .tab-btn { font-size: 0.78rem; padding: 10px 6px; }
+  .tab-btn .icon { display: none; }
+  .tab-copy-btn { padding: 10px 10px; }
 }
 </style>
 </head>
@@ -709,10 +732,10 @@ tr:hover td { background: #f8f9fb; }
 
   <!-- ===== Header ===== -->
   <div class="note-header">
-    <div class="note-tag">AI面试 · PM</div>
-    <h1>AI面试题：数据评测集构建与质量保证</h1>
-    <div class="subtitle">高分解题框架 — 总-分-总结构 + 五维质量保障体系</div>
-    
+    <div class="note-tag">AI Agent</div>
+    <h1>CHATBI 意图识别 Agent 设计方案</h1>
+    <div class="subtitle">从自然语言到数据查询的意图理解引擎</div>
+    <div class='note-source'><span class='source-label'>原文来源</span><a class='source-link' href='https://mp.weixin.qq.com/s/CPW23oEzaFQclaEDP-vMfg' target='_blank'>data之道 · 公众号</a></div>
   </div>
 
   <!-- ===== Fixed Tab Navigation ===== -->
@@ -735,14 +758,14 @@ tr:hover td { background: #f8f9fb; }
   <div class="tab-content text-tab active" id="tab-text" role="tabpanel">
     <div class="card">
       <div class="text-content">
-        <h2>🧭 核心认知：评测集是模型迭代的"指南针"</h2><p>在 AI 产品中，评测集（Evaluation Dataset）决定了模型在真实业务中的表现天花板。面试官问这个问题的核心目的，是考察你是否懂 AI 的底层逻辑、是否具备严谨的工程思维，以及是否能将业务场景转化为可量化的评估标准。</p><blockquote>开场白模板："在 AI 产品中，评测集就是指引模型迭代的'指南针'。评测集建得准不准，直接决定了模型在真实业务中好不好用。在我的项目中，我主要通过'基于真实业务场景拆解'来构建评测集，并从五个核心维度来把控数据质量。"</blockquote><h2>📋 一、评测集构建四步法</h2><h3>1. 业务场景拆解与分布定义（Define）</h3><p>首先不盲目找数据，而是先盘点业务场景。将用户的核心需求拆解为多个子场景：</p><ul><li><strong>场景分类：</strong>闲聊、任务指令、知识问答、逻辑推理等</li><li><strong>分布定义：</strong>根据线上真实流量比例确定各场景数据占比</li><li><strong>目标准则：</strong>确保评测集能反映真实用户需求分布</li></ul><h3>2. 多渠道数据采集（Collect）</h3><p>数据来源采用<span class="tag-blue">三管齐下</span>策略：</p><ul><li><span class="tag-blue">Logs</span> <strong>真实用户日志：</strong>抽取线上高频 Query 和长尾 Query，脱敏后加入评测集，保证"接地气"</li><li><span class="tag-purple">Expert</span> <strong>业务专家构造：</strong>针对冷启动或罕见的 Corner Cases，邀请专家手动撰写困难样本</li><li><span class="tag-green">Synthetic</span> <strong>大模型生成：</strong>利用强模型进行泛化扩写，增加指令多样性</li></ul><h3>3. 建立标注 SOP 与对齐标准（SOP &amp; Alignment）</h3><p>亲自撰写第一版《数据标注指南（SOP）》。先自标 100 条数据，把模糊地带、边界条件定义清楚，形成<span class="tag-purple">黄金测试集（Golden Set）</span>，再交给标注团队执行，确保大家对"好结果"的认知一致。</p><h3>4. 评测集分层管理（Stratification）</h3><p>将评测集分为三类：</p><ul><li><span class="tag-blue">基础集</span> — 测试常规能力，防退化</li><li><span class="tag-orange">困难集</span> — 复杂指令、多轮对话，测试能力上限</li><li><span class="tag-red">安全集</span> — 红蓝对抗，测试越狱、敏感词等合规底线</li></ul><h2>📊 二、五维质量保障体系</h2><h3>5. 真实性（Authenticity）</h3><p>评测数据必须符合真实用户的表达习惯，不能全是书面语。定期清洗学术/开源数据集中的"机器味"数据，引入带有<span class="tag-orange">错别字、口语化、表达不完整</span>的真实用户 Query，考验模型鲁棒性。</p><h3>6. 覆盖度与多样性（Coverage &amp; Diversity）</h3><p>数据分布是否涵盖所有业务场景、用户画像和指令长度？使用聚类算法对评测集分析，发现某类意图过于集中时，人工干预补充稀缺类别数据，解决<span class="tag-orange">长尾问题（Long-tail）</span>。</p><h3>7. 准确性与一致性（Accuracy &amp; Consistency）</h3><p>引入<span class="tag-purple">IAA（标注者一致性）</span>指标。同一条数据让两人背靠背标注，意见不一致时引入高级审核员进行仲裁。通过交叉检验确保 Ground Truth 的质量。</p><h3>8. 动态时效性（Timeliness）</h3><p>评测集不能是一滩死水。建立<span class="tag-green">"数据飞轮"机制</span>，每周/每月从线上 Bad Case（用户点踩或报错的数据）中抽取典型样本补充到评测集中，让评测集与时俱进。</p><h3>9. 安全性与合规性（Safety &amp; Alignment）</h3><p>数据入库前进行<span class="tag-red">自动化脱敏处理</span>，避免泄露 PII。专门构建<span class="tag-red">"诱导性攻击"红队测试数据</span>，保障产品合规底线。</p><h2>💡 面试追问应对</h2><div class="highlight-box warn"><strong>Q：遇到标注团队和你的理解不一致怎么办？</strong><br>A：拉齐认知。挑选有分歧的 Bad Case 开周会复盘讨论，将结论补充进 SOP 白皮书，持续迭代标注规则。</div><h2>🎯 总结</h2><blockquote>构建评测集不是一劳永逸的工作。不仅要关注静态的数据质量指标（如标注准确率），更要关注动态的业务对齐。只有确保评测集的分布永远贴近真实用户的需求变化，才能指引算法团队训练出真正创造业务价值的 AI 模型。</blockquote><div class="footer-tags"><span class="tag-blue">#AI面试</span><span class="tag-purple">#评测集</span><span class="tag-green">#数据质量</span><span class="tag-orange">#AI产品经理</span></div>
+        <h2>为什么需要意图识别</h2><p>在 CHATBI（智能数据问答）系统中，用户以自然语言输入，AI 需要准确理解用户的真实目的，将输入映射到预定义的意图类别，避免流程跑偏。</p><h2>6 种意图分类</h2><table><thead><tr><th>意图</th><th>说明</th><th>示例</th></tr></thead><tbody><tr><td><span class='tag-pill tag-blue'>QUERY</span></td><td>查询类</td><td>上个月的营收是多少？</td></tr><tr><td><span class='tag-pill tag-green'>HI</span></td><td>寒暄类</td><td>你好、早上好</td></tr><tr><td><span class='tag-pill tag-purple'>SUMMARY</span></td><td>总结类</td><td>帮我总结一下前面的分析</td></tr><tr><td><span class='tag-pill tag-orange'>UNRELATED</span></td><td>无关类</td><td>今天天气怎么样？</td></tr><tr><td><span class='tag-pill'>FILE</span></td><td>文件类</td><td>上传新的销售数据</td></tr><tr><td><span class='tag-pill'>ASK</span></td><td>反问类</td><td>你说的哪个部门？</td></tr></tbody></table><h2>核心概念：槽位（Slot）</h2><p>槽位是意图的「参数」，用于从用户输入中提取具体信息。例如：</p><blockquote>查询「上个月北区的销售额」→ 意图 QUERY，槽位 {时间=上个月, 区域=北区, 指标=销售额}</blockquote><h3>槽位类型</h3><ul><li><strong>必填槽位</strong>：缺失时必须追问</li><li><strong>可选槽位</strong>：有则提取，无则忽略</li><li><strong>枚举槽位</strong>：预定义值列表</li><li><strong>时间槽位</strong>：自然语言时间解析</li><li><strong>实体槽位</strong>：业务实体名称匹配</li></ul><h2>大模型意图识别流程</h2><div class='highlight-box highlight-blue'><strong>执行链路：</strong><br>用户输入 → LLM 意图匹配 + 槽位提取 → 槽位齐全则执行，缺失则追问 → 返回结构化结果</div><h2>Prompt 设计要点</h2><ul><li>明确角色和目标</li><li>输出格式严格限定 JSON</li><li>提供意图列表 + 槽位定义 + 示例</li><li>含历史对话上下文</li><li>槽位值缺失时置空，必要时提问</li></ul><h2>优化方案：向量检索预筛选</h2><p>当意图数量较多时，先将意图向量化存入向量库，每次先检索最相关的 Top-K 意图再传给 LLM，避免 Prompt 膨胀，提升准确率和响应速度。</p><div class='footer-tags'><span class='tag-pill tag-blue'>CHATBI</span><span class='tag-pill tag-blue'>意图识别</span><span class='tag-pill tag-blue'>Agent设计</span><span class='tag-pill tag-blue'>槽位提取</span><span class='tag-pill tag-blue'>Prompt工程</span></div>
       </div>
     </div>
   </div>
 
   <!-- ===== Diagram Tab ===== -->
   <div class="tab-content diagram-tab" id="tab-diagram" role="tabpanel">
-    <div class="diagram-section"><h3>📋 评测集构建四步法</h3><div class="diagram-desc">从场景拆解到分层管理的完整流程</div><div class="step-list"><div class="step-item" style="background:#e8f0fe;border-color:#d0d8f0;"><div class="step-circle" style="background:#667eea;">1</div><div class="step-content"><div class="step-title">Define · 场景拆解与分布定义</div><div class="step-desc">盘点业务场景，按线上流量比例确定各场景数据占比</div></div></div><div class="step-item" style="background:#f0ebff;border-color:#d8d0f0;"><div class="step-circle" style="background:#7c3aed;">2</div><div class="step-content"><div class="step-title">Collect · 多渠道数据采集</div><div class="step-desc">真实日志 + 专家构造 + 大模型生成，三管齐下</div></div></div><div class="step-item" style="background:#fef4e8;border-color:#f0dcc0;"><div class="step-circle" style="background:#f59e0b;">3</div><div class="step-content"><div class="step-title">SOP · 标注标准与对齐</div><div class="step-desc">自标100条形成Golden Set，统一标注认知</div></div></div><div class="step-item" style="background:#e6f7ed;border-color:#c0e8d0;"><div class="step-circle" style="background:#22c55e;">4</div><div class="step-content"><div class="step-title">Stratify · 评测集分层管理</div><div class="step-desc">基础集 + 困难集 + 安全集，三层覆盖</div></div></div></div><div class="info-bar" style="text-align:center;"><strong>🔀 核心原则：</strong>评测集分布无限贴近真实用户需求</div></div><div class="diagram-section"><h3>📦 数据来源：三管齐下</h3><div class="diagram-desc">多渠道采集确保评测集的全面性与代表性</div><div class="diagram-grid-3"><div class="grid-card"><div class="grid-card-label">📊 真实用户日志</div><div class="grid-card-title">Logs</div><div class="grid-card-desc">抽取线上高频及长尾 Query，经脱敏处理后注入评测集，保证"接地气"</div></div><div class="grid-card"><div class="grid-card-label">👨‍🔬 业务专家构造</div><div class="grid-card-title">Expert-crafted</div><div class="grid-card-desc">针对冷启动阶段及罕见 Corner Cases，由领域专家手动撰写困难样本</div></div><div class="grid-card"><div class="grid-card-label">🤖 大模型生成</div><div class="grid-card-title">Synthetic Data</div><div class="grid-card-desc">利用强模型进行泛化扩写，增加指令的多样性与覆盖范围</div></div></div><div class="effect-bar">📊 效果：三种来源互补，兼顾真实性 + 稀缺性 + 多样性</div></div><div class="diagram-section"><h3>🛡️ 五维质量保障体系</h3><div class="diagram-desc">贯穿数据全生命周期的 5 个核心质量维度</div><div class="tag-grid-2"><div class="tag-card"><div class="tag-card-title">🎯 真实性</div><div class="tag-group"><span class="tag-pill tag-blue">真实用户Query</span><span class="tag-pill tag-blue">口语化表达</span><span class="tag-pill tag-blue">错别字容忍</span></div></div><div class="tag-card"><div class="tag-card-title">🌈 覆盖度与多样性</div><div class="tag-group"><span class="tag-pill tag-purple">聚类分析分布</span><span class="tag-pill tag-purple">补充长尾数据</span></div></div><div class="tag-card"><div class="tag-card-title">✅ 准确性与一致性</div><div class="tag-group"><span class="tag-pill tag-green">IAA一致性指标</span><span class="tag-pill tag-green">交叉检验仲裁</span></div></div><div class="tag-card"><div class="tag-card-title">⏱️ 动态时效性</div><div class="tag-group"><span class="tag-pill tag-orange">数据飞轮机制</span><span class="tag-pill tag-orange">Bad Case回注</span></div></div><div class="tag-card"><div class="tag-card-title">🔒 安全性与合规性</div><div class="tag-group"><span class="tag-pill tag-red">自动化脱敏</span><span class="tag-pill tag-red">红队攻击测试</span></div></div></div><div class="info-bar"><strong>💡 面试加分：</strong>提及具体指标（如"标注一致性95%+""构建1万条核心评测集"）大幅提升说服力</div></div>
+    <div class='diagram-section'><h3>🎯 意图识别整体架构</h3><div class='diagram-desc'>从用户输入到业务执行的完整链路</div><div class='css-flow'><div class='css-flow-row'><span class='css-node blue'>用户输入</span><span class='css-arrow'>→</span><span class='css-node blue'>LLM意图匹配</span><span class='css-arrow'>→</span><span class='css-node blue'>槽位提取</span></div></div></div><div class='diagram-section'><h3>📋 6 种意图分类</h3><div class='diagram-desc'>覆盖 CHATBI 交互场景</div><div class='tag-grid-2'><div class='tag-card'><div class='tag-card-title'>🔍 数据查询</div><div class='tag-group'><span class='tag-pill tag-blue'>QUERY 查询类</span><span class='tag-pill tag-blue'>SUMMARY 总结类</span></div></div><div class='tag-card'><div class='tag-card-title'>💬 交互管理</div><div class='tag-group'><span class='tag-pill tag-green'>HI 寒暄类</span><span class='tag-pill tag-green'>ASK 反问类</span></div></div><div class='tag-card'><div class='tag-card-title'>📁 数据操作</div><div class='tag-group'><span class='tag-pill tag-orange'>FILE 文件类</span></div></div><div class='tag-card'><div class='tag-card-title'>🚫 边界处理</div><div class='tag-group'><span class='tag-pill tag-orange'>UNRELATED 无关类</span></div></div></div></div><div class='diagram-section'><h3>🔧 意图识别决策流</h3><div class='diagram-desc'>槽位完整性决定执行路径</div><div class='step-list'><div class='step-item' style='background:#e8f0fe;'><div class='step-circle' style='background:#667eea;'>1</div><div class='step-content'><div class='step-title'>意图匹配 <span class='step-tag' style='color:#667eea;'>LLM</span></div><div class='step-desc'>用户输入 → LLM 判断所属意图分类</div></div></div><div class='step-item' style='background:#f0ebff;'><div class='step-circle' style='background:#7c3aed;'>2</div><div class='step-content'><div class='step-title'>槽位提取与校验 <span class='step-tag' style='color:#7c3aed;'>参数</span></div><div class='step-desc'>从输入中提取必填/可选槽位，检查完整性</div></div></div><div class='step-item' style='background:#fef4e8;'><div class='step-circle' style='background:#f59e0b;'>3</div><div class='step-content'><div class='step-title'>执行或追问 <span class='step-tag' style='color:#f59e0b;'>决策</span></div><div class='step-desc'>槽位齐全 → 执行查询；缺失 → 反问用户补充</div></div></div></div></div><div class='diagram-section'><h3>📐 优化方案</h3><div class='diagram-desc'>意图数量多时的性能优化</div><div class='css-flow'><div class='css-flow-row'><span class='css-node blue'>意图向量库</span><span class='css-arrow'>→</span><span class='css-node blue'>Top-K 检索</span><span class='css-arrow'>→</span><span class='css-node blue'>LLM 匹配</span></div></div></div>
   </div>
 
   <!-- ===== My Note Tab (blank, user fills in) ===== -->
@@ -973,7 +996,7 @@ function tableToMd(table){
 }
 
 // ===== My Note (persisted to localStorage) =====
-const MN_KEY='ai_note_mynote_' + encodeURIComponent('AI面试题：数据评测集构建与质量保证');
+const MN_KEY='ai_note_mynote_' + encodeURIComponent('CHATBI 意图识别 Agent 设计方案');
 
 function loadMyNote(){
   const editor=document.getElementById('mynoteEditor');
