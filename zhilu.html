@@ -1003,7 +1003,10 @@ async function autoUpdateNote(id){
 function sanitizeContent(html){
   if(!html)return html;
   // Remove any lingering editing hint styles
-  return html.replace(/<style[^>]*>\s*\*\s*:\s*hover\s*\{[^}]*outline[^}]*\}\s*<\/style>\s*/gi,'');
+  html = html.replace(/<style[^>]*>\s*\*\s*:\s*hover\s*\{[^}]*outline[^}]*\}\s*<\/style>\s*/gi,'');
+  // Replace CDN Mermaid with local copy for offline support
+  html = html.replace(/https:\/\/cdn\.jsdelivr\.net\/npm\/mermaid@11\/dist\/mermaid\.min\.js/gi,'./scripts/mermaid.min.js');
+  return html;
 }
 
 function toggleFolder(id){
