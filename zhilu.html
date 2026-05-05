@@ -378,8 +378,15 @@ body{
   font-family:var(--font-body);
   cursor:pointer;
   transition:var(--transition);
+  white-space:nowrap;
 }
 .note-toolbar .btn-icon:hover{background:var(--bg);color:var(--text)}
+@media(max-width:400px){
+  .note-toolbar .btn-icon{
+    padding:5px 6px;
+    font-size:0.7rem;
+  }
+}
 
 .note-frame-wrap{
   flex:1;
