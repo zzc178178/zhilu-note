@@ -1673,6 +1673,143 @@ async function deleteFolderRecursive(folderId){
   for(const s of subs) await deleteFolderRecursive(s.id);
 }
 
+// ===== GitHub Gist Sync =====
+const GIST_TOKEN_KEY='zhilu_gist_token';
+const GIST_ID_KEY='zhilu_gist_id';
+
+function getGistToken(){
+  return localStorage.getItem(GIST_TOKEN_KEY)||'';
+}
+function setGistToken(token){
+  if(token) localStorage.setItem(GIST_TOKEN_KEY,token);
+  else localStorage.removeItem(GIST_TOKEN_KEY);
+}
+function getGistId(){
+  return localStorage.getItem(GIST_ID_KEY)||'';
+}
+function setGistId(id){
+  if(id) localStorage.setItem(GIST_ID_KEY,id);
+  else localStorage.removeItem(GIST_ID_KEY);
+}
+
+function showGistSyncModal(){
+  const token=getGistToken();
+  const tokenSection=document.getElementById('gistTokenSection');
+  const actionsSection=document.getElementById('gistActions');
+  const tokenInput=document.getElementById('gistTokenInput');
+  if(token){
+    tokenSection.style.display='none';
+    actionsSection.style.display='block';
+  }else{
+    tokenSection.style.display='block';
+    actionsSection.style.display='none';
+    tokenInput.value='';
+  }
+  document.getElementById('gistStatus').textContent='';
+  document.getElementById('gistModalOverlay').classList.add('open');
+}
+function closeGistModal(){
+  document.getElementById('gistModalOverlay').classList.remove('open');
+}
+function clearGistToken(){
+  setGistToken('');
+  setGistId('');
+  showGistSyncModal();
+  showToast('已清除 Token');
+}
+
+async function uploadToGist(){
+  let token=getGistToken();
+  if(!token){
+    const input=document.getElementById('gistTokenInput');
+    token=input.value.trim();
+    if(!token){ showToast('请输入 GitHub Token'); return; }
+    if(document.getElementById('gistSaveToken').checked) setGistToken(token);
+  }
+  const status=document.getElementById('gistStatus');
+  status.textContent='正在上传...';
+  try{
+    const notes=await getAll('notes');
+    const folders=await getAll('folders');
+    const data={
+      version:1,
+      exportedAt:Date.now(),
+      folders:folders,
+      notes:notes.map(n=>({id:n.id,name:n.name,folderId:n.folderId,content:n.content,createdAt:n.createdAt,updatedAt:n.updatedAt}))
+    };
+    const gistId=getGistId();
+    const url=gistId?`https://api.github.com/gists/${gistId}`:'https://api.github.com/gists';
+    const method=gistId?'PATCH':'POST';
+    const payload={
+      description:'知录笔记同步',
+      public:false,
+      files:{'zhilu-notes.json':{content:JSON.stringify(data,null,2)}}
+    };
+    const res=await fetch(url,{
+      method,
+      headers:{'Authorization':`token ${token}`,'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const result=await res.json();
+    setGistId(result.id);
+    status.textContent=`✅ 已上传 ${notes.length} 篇笔记到 Gist`;
+    showToast('云端同步成功');
+  }catch(e){
+    status.textContent='❌ 上传失败：'+e.message;
+    showToast('同步失败');
+  }
+}
+
+async function downloadFromGist(){
+  let token=getGistToken();
+  if(!token){
+    const input=document.getElementById('gistTokenInput');
+    token=input.value.trim();
+    if(!token){ showToast('请输入 GitHub Token'); return; }
+    if(document.getElementById('gistSaveToken').checked) setGistToken(token);
+  }
+  const status=document.getElementById('gistStatus');
+  status.textContent='正在下载...';
+  try{
+    const gistId=getGistId();
+    if(!gistId){
+      // List gists to find zhilu-notes
+      const listRes=await fetch('https://api.github.com/gists',{
+        headers:{'Authorization':`token ${token}`}
+      });
+      if(!listRes.ok) throw new Error(`HTTP ${listRes.status}`);
+      const gists=await listRes.json();
+      const found=gists.find(g=>g.files['zhilu-notes.json']);
+      if(!found){ status.textContent='未找到知录同步数据'; return; }
+      setGistId(found.id);
+    }
+    const res=await fetch(`https://api.github.com/gists/${getGistId()}`,{
+      headers:{'Authorization':`token ${token}`}
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const gist=await res.json();
+    const file=gist.files['zhilu-notes.json'];
+    if(!file) throw new Error('找不到笔记数据文件');
+    const content=await fetch(file.raw_url).then(r=>r.text());
+    const data=JSON.parse(content);
+    if(!data.notes||!Array.isArray(data.notes)) throw new Error('数据格式错误');
+    // Merge strategy: overwrite all
+    const existingNotes=await getAll('notes');
+    for(const n of existingNotes) await delData('notes',n.id);
+    const existingFolders=await getAll('folders');
+    for(const f of existingFolders) await delData('folders',f.id);
+    for(const f of data.folders||[]) await putData('folders',f);
+    for(const n of data.notes) await putData('notes',n);
+    status.textContent=`✅ 已下载 ${data.notes.length} 篇笔记`;
+    showToast('同步完成');
+    render();
+  }catch(e){
+    status.textContent='❌ 下载失败：'+e.message;
+    showToast('同步失败');
+  }
+}
+
 // ===== Init =====
 async function init(){
   await openDB();
