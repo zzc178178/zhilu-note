@@ -23,9 +23,9 @@
 
 知录专为 ai-note 生成的双页签笔记设计，以下为实际运行的笔记截图：
 
-| 文字笔记页签 | 图解页签 |
+| 文字 | 图解 |
 |---|---|
-| ![文字笔记](docs/assets/text-tab.png) | ![图解笔记](docs/assets/diagram-tab.png) |
+| ![文字](docs/assets/text-tab.png) | ![图解](docs/assets/diagram-tab.png) |
 
 > 点击在线体验：[示例笔记 — Agent 记忆提取触发策略](https://zzc178178.github.io/claude-skills/examples/Agent%E8%AE%B0%E5%BF%86%E6%8F%90%E5%8F%96%E8%A7%A6%E5%8F%91%E7%AD%96%E7%95%A5%EF%BC%9A%E5%9B%9B%E5%A4%A7%E6%A1%86%E6%9E%B6%E5%AF%B9%E6%AF%94.html)
 
