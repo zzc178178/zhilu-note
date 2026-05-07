@@ -1,5 +1,5 @@
 // Service Worker for 知录 · 笔记
-const CACHE_NAME = 'zhilu-v5';
+const CACHE_NAME = 'zhilu-v6';
 const PRECACHE_URLS = [
   './manifest.json',
   './scripts/mermaid.min.js',
@@ -44,8 +44,10 @@ self.addEventListener('fetch', event => {
   }
 
   // Local assets — Network First (always fetch latest, fallback to cache)
+  const noCache = url.pathname.endsWith('.html') || url.pathname.endsWith('/');
+  const fetchOpts = noCache ? { cache: 'no-store' } : {};
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, fetchOpts)
       .then(response => {
         const clone = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
