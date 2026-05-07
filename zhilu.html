@@ -1585,17 +1585,6 @@ async function importDir(dirHandle,parentId,pathPrefix){
     await importDir(handle,folderId,pathPrefix?pathPrefix+'/'+name:name);
   }
 }
-function refreshList(){
-  const curNote=state.selectedNote;
-  render().then(()=>{
-    if(curNote&&document.querySelector(`.file-item[onclick*="'${curNote}'"]`)){
-      state.selectedNote=curNote;
-      highlightSelectedNote();
-    }
-  });
-  showToast('列表已刷新');
-}
-
 async function handleFileImport(e){
   const files=e.target.files;
   if(!files.length)return;
