@@ -2075,10 +2075,13 @@ async function init(){
   if(folders.length===0){
     await putData('folders',{id:'f_demo',name:'示例笔记',parentId:null,order:0,createdAt:Date.now()});
   }
-  // Show help on first launch
+  // Show help on first launch (only when truly empty and not shown this session)
   try{
-    if(!localStorage.getItem('zhilu_help_seen')){
+    const notes=await getAll('notes');
+    const hasSeen=localStorage.getItem('zhilu_help_seen')||sessionStorage.getItem('zhilu_help_seen');
+    if(!hasSeen&&notes.length===0&&folders.length===0){
       localStorage.setItem('zhilu_help_seen','1');
+      sessionStorage.setItem('zhilu_help_seen','1');
       setTimeout(showHelp, 300);
     }
   }catch(e){}
