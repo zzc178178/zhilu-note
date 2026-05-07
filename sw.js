@@ -1,5 +1,5 @@
 // Service Worker for 知录 · 笔记
-const CACHE_NAME = 'zhilu-v4';
+const CACHE_NAME = 'zhilu-v5';
 const PRECACHE_URLS = [
   './manifest.json',
   './scripts/mermaid.min.js',
